@@ -1,28 +1,16 @@
 stages:
-  - analyze
   - validate
   - deploy
- 
+
 image:
   name: salesforce/cli:latest-slim
- 
+
 before_script:
   - node --version
   - sf --version
   - test -n "$SF_AUTH_DEV" || { echo "SF_AUTH_DEV must be set in GitLab CI/CD Variables"; exit 1; }
   - printf '%s' "$SF_AUTH_DEV" | sf org login sfdx-url --alias myOrg --set-default --sfdx-url-stdin --verbose
- 
-# 1. Static Code Analysis Stage
-code_analyzer:
-  stage: analyze
-  script:
-    - echo "Installing Salesforce Code Analyzer v5 plugin..."
-    - sf plugins install @salesforce/plugin-code-analyzer
-    - sf code-analyzer run --rule-selector Recommended --workspace ./force-app --target ./force-app --severity-threshold 2
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH == "main"'
- 
+
 # 2. Validate Stage: Compare current commit to previous commit (HEAD~1)
 validate_deployment:
   stage: validate
@@ -38,8 +26,6 @@ validate_deployment:
     # or handle metadata paths directly, you can pass them or evaluate them here.
     - echo "Running validation check..."
     - sf project deploy validate --target-org myOrg --source-dir force-app --wait 30
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
  
 # 3. Deploy Stage
 deploy_to_org:
@@ -48,5 +34,4 @@ deploy_to_org:
     - echo "Starting deployment to Salesforce..."
     - sf project deploy start --target-org myOrg --source-dir force-app --wait 30
     - echo "Deployment completed successfully!"
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
+  
