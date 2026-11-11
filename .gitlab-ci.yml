@@ -9,21 +9,19 @@ before_script:
   - node --version
   - sf --version
   - test -n "$SF_AUTH_DEV" || { echo "SF_AUTH_DEV must be set in GitLab CI/CD Variables"; exit 1; }
-  - echo "$SF_AUTH_DEV" | sf org login sfdx-url --alias myOrg --set-default --sfdx-url-stdin - --verbose
+  - echo "$SF_AUTH_DEV" | sf org login sfdx-url --alias myOrg --set-default --sfdx-url-stdin -
 
 # 2. Validate Stage: Compare current commit to previous commit (HEAD~1)
 validate_deployment:
   stage: validate
   before_script:
     - test -n "$SF_AUTH_DEV" || { echo "SF_AUTH_DEV must be set in GitLab CI/CD Variables"; exit 1; }
-    - echo "$SF_AUTH_DEV" | sf org login sfdx-url --alias myOrg --set-default --sfdx-url-stdin - --verbose
+    - echo "$SF_AUTH_DEV" | sf org login sfdx-url --alias myOrg --set-default --sfdx-url-stdin -
     - apt-get update && apt-get install -y git
   script:
     - echo "Checking files changed between previous commit and current commit..."
     - git diff --name-only HEAD~1 HEAD
    
-    # Optional: If you want Salesforce CLI to generate a manifest automatically based on changed files
-    # or handle metadata paths directly, you can pass them or evaluate them here.
     - echo "Running validation check..."
     - sf project deploy validate --target-org myOrg --source-dir force-app --wait 30
  
