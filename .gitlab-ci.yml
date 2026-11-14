@@ -1,5 +1,6 @@
 stages:
   - validate
+  - test
   - deploy
 
 image:
@@ -11,7 +12,7 @@ before_script:
   - test -n "$SF_AUTH_DEV" || { echo "SF_AUTH_DEV must be set in GitLab CI/CD Variables"; exit 1; }
   - echo "$SF_AUTH_DEV" | sf org login sfdx-url --alias myOrg --set-default --sfdx-url-stdin -
 
-# 2. Validate Stage: Compare current commit to previous commit (HEAD~1)
+# 1. Validate Stage: Compare files and run validation
 validate_deployment:
   stage: validate
   before_script:
@@ -22,12 +23,27 @@ validate_deployment:
     - echo "Checking files changed between previous commit and current commit..."
     - git diff --name-only HEAD~1 HEAD
    
-    - echo "Running validation check..."
+    - echo "Running deployment validation check..."
     - sf project deploy validate --target-org myOrg --source-dir force-app --wait 30
- 
-# 3. Deploy Stage
+
+# 2. Test Stage: Run Apex tests and save results to a folder
+run_apex_tests:
+  stage: test
+  script:
+    - echo "Running Apex tests..."
+    - mkdir -p tests/apex
+    - sf project test run --target-org myOrg --result-format human --output-dir tests/apex --code-coverage --wait 30
+    - echo "Apex tests completed and saved!"
+  artifacts:
+    name: "apex-test-results"
+    paths:
+      - tests/apex/
+    expire_in: 30 days
+
+# 3. Deploy Stage (Requires Manual Approval)
 deploy_to_org:
   stage: deploy
+  when: manual
   script:
     - echo "Starting deployment to Salesforce..."
     - sf project deploy start --target-org myOrg --source-dir force-app --wait 30
