@@ -22,7 +22,7 @@ validate_deployment:
     - apt-get update && apt-get install -y git
   script:
     - echo "Checking files changed between previous commit and current commit..."
-    - git diff --name-only HEAD~1 HEAD
+    - git diff --name-only HEAD~1 HEAD || true
     - echo "Running deployment validation check..."
     - sf project deploy validate --target-org myOrg --source-dir force-app --wait 30
 
@@ -32,10 +32,11 @@ run_apex_tests:
   script:
     - echo "Running Apex tests..."
     - mkdir -p tests/apex
-    - sf project test run --target-org myOrg --result-format human --output-dir tests/apex --code-coverage --wait 30
+    - sf apex run test --target-org myOrg --test-level RunLocalTests --result-format junit --output-dir tests/apex --code-coverage --wait 30
     - echo "Apex tests completed and saved!"
   artifacts:
     name: "apex-test-results"
+    when: always
     paths:
       - tests/apex/
     expire_in: 30 days
