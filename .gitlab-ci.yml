@@ -1,6 +1,7 @@
 stages:
   - validate
   - test
+  - approval
   - deploy
 
 image:
@@ -22,7 +23,6 @@ validate_deployment:
   script:
     - echo "Checking files changed between previous commit and current commit..."
     - git diff --name-only HEAD~1 HEAD
-   
     - echo "Running deployment validation check..."
     - sf project deploy validate --target-org myOrg --source-dir force-app --wait 30
 
@@ -40,10 +40,20 @@ run_apex_tests:
       - tests/apex/
     expire_in: 30 days
 
-# 3. Deploy Stage (Requires Manual Approval)
+# 3. Manual Approval Gate (Blocks pipeline until clicked)
+approve_deployment:
+  stage: approval
+  before_script: []
+  script:
+    - echo "Deployment manually approved by $GITLAB_USER_LOGIN"
+  when: manual
+  allow_failure: false
+
+# 4. Deploy Stage (Runs automatically once approved)
 deploy_to_org:
   stage: deploy
-  when: manual
+  needs:
+    - approve_deployment
   script:
     - echo "Starting deployment to Salesforce..."
     - sf project deploy start --target-org myOrg --source-dir force-app --wait 30
