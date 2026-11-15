@@ -3,6 +3,7 @@ stages:
   - test
   - approval
   - deploy
+  - audit
 
 image:
   name: salesforce/cli:latest-slim
@@ -59,3 +60,20 @@ deploy_to_org:
     - echo "Starting deployment to Salesforce..."
     - sf project deploy start --target-org myOrg --source-dir force-app --wait 30
     - echo "Deployment completed successfully!"
+
+# 5. Audit Stage: Export SetupAuditTrail to CSV
+export_audit_trail:
+  stage: audit
+  needs:
+    - deploy_to_org
+  script:
+    - echo "Querying SetupAuditTrail..."
+    - mkdir -p audit
+    - sf data query --query "SELECT Id, Section, DelegateUser, Display, Action, CreatedByIssuer, CreatedDate FROM SetupAuditTrail ORDER BY CreatedDate DESC" --target-org myOrg --result-format csv > audit/setup_audit_trail.csv
+    - echo "Audit trail saved!"
+  artifacts:
+    name: "setup-audit-trail"
+    when: always
+    paths:
+      - audit/
+    expire_in: 30 days
